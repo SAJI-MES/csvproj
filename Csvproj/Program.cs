@@ -4,16 +4,29 @@ using System.IO;
 
 class FileHelper
 {
-    public static string FindFile(string folder, string name)
+    public static string FindFile(string folder, string name, out char delimiter)
     {
+        delimiter = ',';
+
         if (string.IsNullOrEmpty(folder) || string.IsNullOrEmpty(name))
             return null;
 
-        string path = Path.Combine(folder, name + ".csv");
-        if (File.Exists(path))
-            return path;
+        string csvPath = Path.Combine(folder, name + ".csv");
+        string tsvPath = Path.Combine(folder, name + ".tsv");
 
-        Console.WriteLine("Файл не найден, пупсик. Попробуй другой путь");
+        if (File.Exists(csvPath))
+        {
+            delimiter = ',';
+            return csvPath;
+        }
+
+        if (File.Exists(tsvPath))
+        {
+            delimiter = '\t';
+            return tsvPath;
+        }
+
+        Console.WriteLine("Файл не найден, пупсик, проверь путь и имя файла");
         return null;
     }
 }
@@ -23,7 +36,7 @@ class TableReader
     private string _filePath;
     private char _delimiter;
 
-    public TableReader(string filePath, char delimiter = ',')
+    public TableReader(string filePath, char delimiter)
     {
         _filePath = filePath;
         _delimiter = delimiter;
@@ -40,12 +53,14 @@ class TableReader
 
             while ((line = reader.ReadLine()) != null)
             {
-                if (string.IsNullOrWhiteSpace(line)) continue;
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
 
                 yield return line.Split(_delimiter);
 
                 count++;
-                if (maxRows > 0 && count >= maxRows) break;
+                if (maxRows > 0 && count >= maxRows)
+                    break;
             }
         }
     }
@@ -55,13 +70,22 @@ class Program
 {
     static void Main()
     {
-        string folder = @""; // вставь сюда путь 
-        string name = ""; // название файла. Если хотите открыть свой файл, то напишите название тут и в папек в качестве пути укажите .csv
+        Console.WriteLine("Введи путь к папке с файлом:");
+        string folder = Console.ReadLine();
 
-        string filePath = FileHelper.FindFile(folder, name);
-        if (filePath == null) return;
+        Console.WriteLine("Введи имя файла без .csv или .tsv:");
+        string name = Console.ReadLine();
 
-        TableReader reader = new TableReader(filePath);
+        char delimiter;
+        string filePath = FileHelper.FindFile(folder, name, out delimiter);
+
+        if (filePath == null)
+            return;
+
+        Console.WriteLine($"Файл найден: {filePath}");
+        Console.WriteLine("Чтение данных...\n");
+
+        TableReader reader = new TableReader(filePath, delimiter);
 
         int rowNum = 0;
         foreach (var row in reader.ReadRows(100))
@@ -70,8 +94,6 @@ class Program
             Console.WriteLine($"Строка {rowNum}: {string.Join(" | ", row)}");
         }
 
-        Console.WriteLine("Готово!");
+        Console.WriteLine("\nГотово, брят");
     }
 }
-
-
